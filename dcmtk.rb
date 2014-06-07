@@ -440,17 +440,6 @@ diff -ur dcmtk-3.6.0/dcmdata/libsrc/dcelem.cc dcmtk-3.6.0-new/dcmdata/libsrc/dce
      /* tag name (if known and not suppressed) */
      if (!(flags & DCMTypes::XF_omitDataElementName))
          out << " name=\"" << OFStandard::convertToMarkupString(getTagName(), xmlString) << "\"";
-diff -ur dcmtk-3.6.0/dcmdata/libsrc/dcpixel.cc dcmtk-3.6.0-new/dcmdata/libsrc/dcpixel.cc
---- dcmtk-3.6.0/dcmdata/libsrc/dcpixel.cc	2010-10-20 20:44:16.000000000 +0400
-+++ dcmtk-3.6.0-new/dcmdata/libsrc/dcpixel.cc	2014-06-08 02:25:40.000000000 +0400
-@@ -777,6 +777,7 @@
-             }
- 
-             /* conduct the reading process */
-+            setOffset(inStream.tell());
-             errorFlag =
-                 DcmPolymorphOBOW::read(inStream, ixfer, glenc, maxReadLength);
-         }
 diff -ur dcmtk-3.6.0/dcmdata/libsrc/dcpixseq.cc dcmtk-3.6.0-new/dcmdata/libsrc/dcpixseq.cc
 --- dcmtk-3.6.0/dcmdata/libsrc/dcpixseq.cc	2010-10-20 20:44:16.000000000 +0400
 +++ dcmtk-3.6.0-new/dcmdata/libsrc/dcpixseq.cc	2014-06-08 02:28:30.000000000 +0400
