@@ -2,6 +2,7 @@ require 'formula'
 
 class Dcmtk < Formula
   homepage 'http://dicom.offis.de/dcmtk.php.en'
+  head 'http://dicom.offis.de/download/dcmtk/snapshot/dcmtk-3.6.1_20131114.tar.gz'
   url 'ftp://dicom.offis.de/pub/dicom/offis/software/dcmtk/dcmtk360/dcmtk-3.6.0.tar.gz'
   sha1 '469e017cffc56f36e834aa19c8612111f964f757'
   revision 1
@@ -9,7 +10,7 @@ class Dcmtk < Formula
   option 'with-docs', 'Install development libraries/headers and HTML docs'
 
   depends_on 'cmake' => :build
-  depends_on "libpng"
+  depends_on 'libpng'
   depends_on 'libtiff'
   depends_on 'doxygen' if build.with? "docs"
 
