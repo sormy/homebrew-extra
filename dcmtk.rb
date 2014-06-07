@@ -440,3 +440,51 @@ diff -ur dcmtk-3.6.0/dcmdata/libsrc/dcelem.cc dcmtk-3.6.0-new/dcmdata/libsrc/dce
      /* tag name (if known and not suppressed) */
      if (!(flags & DCMTypes::XF_omitDataElementName))
          out << " name=\"" << OFStandard::convertToMarkupString(getTagName(), xmlString) << "\"";
+diff -ur dcmtk-3.6.0/dcmdata/libsrc/dcpixel.cc dcmtk-3.6.0-new/dcmdata/libsrc/dcpixel.cc
+--- dcmtk-3.6.0/dcmdata/libsrc/dcpixel.cc	2010-10-20 20:44:16.000000000 +0400
++++ dcmtk-3.6.0-new/dcmdata/libsrc/dcpixel.cc	2014-06-08 02:25:40.000000000 +0400
+@@ -777,6 +777,7 @@
+             }
+ 
+             /* conduct the reading process */
++            setOffset(inStream.tell());
+             errorFlag =
+                 DcmPolymorphOBOW::read(inStream, ixfer, glenc, maxReadLength);
+         }
+diff -ur dcmtk-3.6.0/dcmdata/libsrc/dcpixseq.cc dcmtk-3.6.0-new/dcmdata/libsrc/dcpixseq.cc
+--- dcmtk-3.6.0/dcmdata/libsrc/dcpixseq.cc	2010-10-20 20:44:16.000000000 +0400
++++ dcmtk-3.6.0-new/dcmdata/libsrc/dcpixseq.cc	2014-06-08 02:28:30.000000000 +0400
+@@ -297,6 +297,7 @@
+                                    const E_GrpLenEncoding glenc,
+                                    const Uint32 maxReadLength)
+ {
++    setOffset(inStream.tell());
+     OFCondition l_error = changeXfer(ixfer);
+     if (l_error.good())
+         return DcmSequenceOfItems::read(inStream, ixfer, glenc, maxReadLength);
+diff -ur dcmtk-3.6.0/dcmdata/libsrc/dcpxitem.cc dcmtk-3.6.0-new/dcmdata/libsrc/dcpxitem.cc
+--- dcmtk-3.6.0/dcmdata/libsrc/dcpxitem.cc	2010-10-20 20:44:16.000000000 +0400
++++ dcmtk-3.6.0-new/dcmdata/libsrc/dcpxitem.cc	2014-06-08 02:34:19.000000000 +0400
+@@ -170,6 +170,8 @@
+     out << "<pixel-item";
+     /* value length in bytes = 0..max */
+     out << " len=\"" << getLengthField() << "\"";
++    /* offset in bytes from beginning of file */
++    out << " offset=\"" << getOffset() << "\"";
+     /* value loaded = no (or absent)*/
+     if (!valueLoaded())
+         out << " loaded=\"no\"";
+diff -ur dcmtk-3.6.0/dcmdata/libsrc/dcsequen.cc dcmtk-3.6.0-new/dcmdata/libsrc/dcsequen.cc
+--- dcmtk-3.6.0/dcmdata/libsrc/dcsequen.cc	2010-11-01 13:42:44.000000000 +0300
++++ dcmtk-3.6.0-new/dcmdata/libsrc/dcsequen.cc	2014-06-08 02:38:22.000000000 +0400
+@@ -264,7 +264,10 @@
+     out << " card=\"" << card() << "\"";
+     /* value length in bytes = 0..max (if not undefined) */
+     if (getLengthField() != DCM_UndefinedLength)
++    {
++        out << " offset=\"" << getOffset() << "\"";
+         out << " len=\"" << getLengthField() << "\"";
++    }
+     /* tag name (if known and not suppressed) */
+     if (!(flags & DCMTypes::XF_omitDataElementName))
+         out << " name=\"" << OFStandard::convertToMarkupString(getTagName(), xmlString) << "\"";
