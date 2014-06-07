@@ -403,7 +403,7 @@ diff -ur dcmtk-3.6.0/dcmdata/include/dcmtk/dcmdata/dcobject.h dcmtk-3.6.0-new/dc
       */
      Uint32 getLengthField() const { return Length; }
  
-+    Uint32 getOffset() const { return Offset; }
++    Uint32 getFileOffset() const { return fOffset; }
 +
   protected:
  
@@ -413,7 +413,7 @@ diff -ur dcmtk-3.6.0/dcmdata/include/dcmtk/dcmdata/dcobject.h dcmtk-3.6.0-new/dc
      Uint32 Length;
  
 +    /// orignal file offset to read value from source file
-+    Uint32 Offset;
++    Uint32 fOffset;
 +
      /// transfer state during read and write operations
      E_TransferState fTransferState;
@@ -426,7 +426,7 @@ diff -ur dcmtk-3.6.0/dcmdata/libsrc/dcelem.cc dcmtk-3.6.0-new/dcmdata/libsrc/dce
              /* if the transfer state is ERW_inWork and we are not supposed */
              /* to read this element's value later, read the value now */
 +            if (getTransferState() == ERW_inWork)
-+                Offset = inStream.tell();
++                fOffset = inStream.tell();
              if (getTransferState() == ERW_inWork && !fLoadValue)
                  errorFlag = loadValue(&inStream);
              /* if the amount of transferred bytes equals the Length of this element */
@@ -435,7 +435,7 @@ diff -ur dcmtk-3.6.0/dcmdata/libsrc/dcelem.cc dcmtk-3.6.0-new/dcmdata/libsrc/dce
      /* value length in bytes = 0..max */
      out << " len=\"" << getLengthField() << "\"";
 +    /* offset in bytes from beginning of file */
-+    out << " offset=\"" << getOffset() << "\"";
++    out << " offset=\"" << getFileOffset() << "\"";
      /* tag name (if known and not suppressed) */
      if (!(flags & DCMTypes::XF_omitDataElementName))
          out << " name=\"" << OFStandard::convertToMarkupString(getTagName(), xmlString) << "\"";
