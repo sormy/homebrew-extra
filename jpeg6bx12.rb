@@ -18,35 +18,40 @@ class Jpeg6bx12 < Formula
     lib.mkpath
     include.mkpath
     man1.mkpath
-
-    @bits_per_sample = "#{version}".gsub(/^.*x/, '')
+    
+    # bits per sample (8, 12 or 16)
+    @bps = "#{version}".gsub(/^.*x/, '')
 
     # adding binsuffix variable
-    system 'sed', '-i', '', '-E', "/^binprefix =/ a\\\nbinsuffix = -#{version}\n", "makefile.cfg"
-    # change version to resolve version-based linkign problems with other toolkits
-    system 'sed', '-i', '', '-E', "s/^(JPEG_LIB_VERSION =).*/\\1 62#{@bits_per_sample.rjust(2, '0')}/", "makefile.cfg"
+    system 'sed', '-i', '', '-E', "/^binprefix =/ a\\\nbinsuffix = #{@bps}\n", "makefile.cfg"
     # bug in original makefile
     system 'sed', '-i', '', '-E', "s/jclossy\\.o/jclossy.$(O)/", "makefile.cfg"
     # adding binsuffix to binary (exe/lib) files
     system 'sed', '-i', '', '-E', "s/(\\$\\(binprefix\\)[a-z]+)/\\1$(binsuffix)/", "makefile.cfg"
     # adding binsuffix to man files
     system 'sed', '-i', '', '-E', "s/(\\.\\$\\(manext\\))/$(binsuffix)\\1/", "makefile.cfg"
-    # define bits per sample based on formula version
-    system 'sed', '-i', '', '-E', "s/^(\#define BITS_IN_JSAMPLE ).*/\\1#{@bits_per_sample}/", "jmorecfg.h"
-    # disable unsupported modules for other than 8 bits per samples builds
-    system 'sed', '-i', '', '-E', "s/^\#define ((BMP|RLE|TARGA)_SUPPORTED)/#undef \\1/", "jconfig.cfg" if @bits_per_sample != "8"
+    # add libjpeg suffix
+    system 'sed', '-i', '', '-E', "s/libjpeg\\./libjpeg#{@bps}./", "makefile.cfg"
+
+    # we need to do something only if we change default value 8 to 12 or 16
+    if @bps != 8
+         # define bits per sample based on formula version
+        system 'sed', '-i', '', '-E', "s/^(\#define BITS_IN_JSAMPLE ).*/\\1#{@bps}/", "jmorecfg.h"
+        # disable unsupported modules for other than 8 bits per samples builds
+        system 'sed', '-i', '', '-E', "s/^\#define ((BMP|RLE|TARGA)_SUPPORTED)/#undef \\1/", "jconfig.cfg"
+    end
 
     system "./configure", "--disable-dependency-tracking",
-                          "--prefix=#{prefix}"#,
-                          #"--enable-static"
+                          "--prefix=#{prefix}",
+                          "--enable-static"
     
-    system "mkdir", "#{include}/jpeg-#{version}"
+    system "mkdir", "#{include}/jpeg#{@bps}"
     
-    system "make", "install",
-                   "install-lib",
+    system "make", "install", 
+                   "install-lib", 
                    "install-headers",
+                   "LIBTOOL=glibtool --tag=CC",
                    "mandir=#{man1}",
-                   "includedir=#{include}/jpeg-#{version}",
-                   "LIBTOOL=glibtool --tag=CC"
+                   "includedir=#{include}/jpeg#{@bps}"
   end
 end
