@@ -34,7 +34,7 @@ class Jpeg6bx16 < Formula
     system 'sed', '-i', '', '-E', "s/libjpeg\\./libjpeg#{@bps}./", "makefile.cfg"
 
     # we need to do something only if we change default value 8 to 12 or 16
-    if @bps != 8
+    if @bps != "8"
          # define bits per sample based on formula version
         system 'sed', '-i', '', '-E', "s/^(\#define BITS_IN_JSAMPLE ).*/\\1#{@bps}/", "jmorecfg.h"
         # disable unsupported modules for other than 8 bits per samples builds
