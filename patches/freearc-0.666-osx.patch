@@ -1,0 +1,230 @@
+diff -ur FreeArc-0.666-sources-org/Compression/Common.cpp FreeArc-0.666-sources/Compression/Common.cpp
+--- FreeArc-0.666-sources-org/Compression/Common.cpp	2010-05-19 08:13:32.000000000 -0400
++++ FreeArc-0.666-sources/Compression/Common.cpp	2014-11-08 14:23:27.000000000 -0500
+@@ -2,6 +2,14 @@
+ #include "Common.h"
+ #include "Compression.h"
+ 
++#ifdef __MACH__
++#include <mach/clock.h>
++#include <mach/mach.h>
++#include <mach/mach_init.h>
++#include <mach/thread_act.h>
++#include <mach/mach_port.h>
++#endif
++
+ // Для обработки ошибок во вложенных процедурах - longjmp сигнализирует процедуре верхнего уровня о произошедшей ошибке
+ int jmpready = FALSE;
+ jmp_buf jumper;
+@@ -638,14 +646,48 @@
+ 
+ #ifdef FREEARC_UNIX
+ // Returns number of wall-clock seconds since some moment
++#ifdef __MACH__
++double GetGlobalTime (void)
++{
++  struct timespec ts;
++  clock_serv_t cclock;
++  mach_timespec_t mts;
++  host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
++  int res = clock_get_time(cclock, &mts);
++  mach_port_deallocate(mach_task_self(), cclock);
++  ts.tv_sec = mts.tv_sec;
++  ts.tv_nsec = mts.tv_nsec;
++  return res? -1 : (ts.tv_sec + ((double)ts.tv_nsec) / 1000000000);
++}
++#else
+ double GetGlobalTime (void)
+ {
+   struct timespec ts;
+   int res = clock_gettime(CLOCK_REALTIME, &ts);
+   return res? -1 : (ts.tv_sec + ((double)ts.tv_nsec) / 1000000000);
+ }
++#endif
+ 
+ // Returns number of seconds spent in this thread
++#ifdef __MACH__
++double GetThreadCPUTime (void)
++{
++  thread_port_t thread = mach_thread_self();
++
++  mach_msg_type_number_t count = THREAD_BASIC_INFO_COUNT;
++  thread_basic_info_data_t info;
++
++  int kr = thread_info(thread, THREAD_BASIC_INFO, (thread_info_t) &info, &count);
++  if (kr != KERN_SUCCESS) {
++      return 0;
++  }
++
++  mach_port_deallocate(mach_task_self(), thread);
++
++  return info.user_time.seconds + ((double)info.user_time.microseconds) / 1000000
++       + info.system_time.seconds + ((double)info.system_time.microseconds) / 1000000;
++}
++#else
+ double GetThreadCPUTime (void)
+ {
+   // clock_gettime() gives us per-thread CPU time.  It isn't
+@@ -654,6 +696,7 @@
+   int res = clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts);
+   return res? -1 : (ts.tv_sec + ((double)ts.tv_nsec) / 1000000000);
+ }
++#endif
+ #endif // FREEARC_UNIX
+ 
+ // Time-based random number
+diff -ur FreeArc-0.666-sources-org/Compression/DisPack/DisPack.cpp FreeArc-0.666-sources/Compression/DisPack/DisPack.cpp
+--- FreeArc-0.666-sources-org/Compression/DisPack/DisPack.cpp	2010-03-22 06:59:26.000000000 -0400
++++ FreeArc-0.666-sources/Compression/DisPack/DisPack.cpp	2014-11-08 14:09:42.000000000 -0500
+@@ -2,7 +2,11 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#ifdef __MACH__
++#include <sys/malloc.h>
++#else
+ #include <malloc.h>
++#endif
+ #include <assert.h>
+ 
+ /* Version history:
+diff -ur FreeArc-0.666-sources-org/Compression/Tornado/EntropyCoder.cpp FreeArc-0.666-sources/Compression/Tornado/EntropyCoder.cpp
+--- FreeArc-0.666-sources-org/Compression/Tornado/EntropyCoder.cpp	2010-05-14 07:37:52.000000000 -0400
++++ FreeArc-0.666-sources/Compression/Tornado/EntropyCoder.cpp	2014-11-08 14:30:48.000000000 -0500
+@@ -659,7 +659,7 @@
+     UINT n, remainder;
+     UINT cnt[NUM], cum[NUM], livecnt[NUM], index[INDEXES];
+ 
+-    TCounter (unsigned _n);
++    TCounter (unsigned _n = NUM);
+ 
+     // Count one more occurence of symbol s
+     // and recalculate encoding tables if enough symbols was counted since last recalculation
+@@ -687,7 +687,7 @@
+ };
+ 
+ template <CodecDirection type>
+-TCounter<type> :: TCounter (unsigned _n = NUM)
++TCounter<type> :: TCounter (unsigned _n)
+ {
+     n = _n;
+     // Initially, allot RANGE points equally to n symbols
+diff -ur FreeArc-0.666-sources-org/Environment.cpp FreeArc-0.666-sources/Environment.cpp
+--- FreeArc-0.666-sources-org/Environment.cpp	2010-05-19 08:13:39.000000000 -0400
++++ FreeArc-0.666-sources/Environment.cpp	2014-11-08 13:58:21.000000000 -0500
+@@ -10,7 +10,6 @@
+ // Изменим настройки RTS, включив compacting GC начиная с 40 mb:
+ char *ghc_rts_opts = "-c1 -M4000m -K80m                       ";
+ 
+-
+ /* ********************************************************************************************************
+ *  Find largest contiguous memory block available and dump information about all available memory blocks
+ ***********************************************************************************************************/
+@@ -328,7 +327,12 @@
+ 
+ 
+ #include <unistd.h>
++#ifdef __MACH__
++#include <sys/types.h>
++#include <sys/sysctl.h>
++#else
+ #include <sys/sysinfo.h>
++#endif
+ 
+ CFILENAME GetExeName (CFILENAME buf, int bufsize)
+ {
+@@ -338,12 +342,26 @@
+   return buf;
+ }
+ 
++#ifdef __MACH__
++uint64 GetPhysicalMemory (void)
++{
++  int mib[2];
++  mib[0] = CTL_HW;
++  mib[1] = HW_MEMSIZE;
++  int64_t size = 0;               /* 64-bit */
++  size_t len = sizeof( size );
++  if ( sysctl( mib, 2, &size, &len, NULL, 0 ) == 0 )
++    return (size_t)size;
++  return 0L;      /* Failed? */
++}
++#else
+ uint64 GetPhysicalMemory (void)
+ {
+   struct sysinfo si;
+     sysinfo(&si);
+   return uint64(si.totalram)*si.mem_unit;
+ }
++#endif
+ 
+ unsigned GetTotalMemoryToAlloc (void)
+ {
+@@ -357,17 +375,46 @@
+   return INT_MAX;
+ }
+ 
++#ifdef __MACH__
++unsigned GetAvailablePhysicalMemory (void)
++{
++  return 0;
++}
++#else
+ unsigned GetAvailablePhysicalMemory (void)
+ {
+   struct sysinfo si;
+     sysinfo(&si);
+   return si.freeram*si.mem_unit;
+ }
++#endif
++
++#ifdef __MACH__
++int GetProcessorsCount (void)
++{
++  int online = 0, configured = 0;
++  int mib[2];
++  size_t len;
++
++  mib[0] = CTL_HW;
++  mib[1] = HW_AVAILCPU;
++  len = sizeof (int);
++  sysctl (mib, 2, &online, &len, NULL, 0);
++  mib[1] = HW_NCPU;
++  len = sizeof (int);
++  sysctl (mib, 2, &configured, &len, NULL, 0);
++
++  if (online > configured)
++    online = configured;
+ 
++  return (online > 0) ? online : configured;
++}
++#else
+ int GetProcessorsCount (void)
+ {
+   return get_nprocs();
+ }
++#endif
+ 
+ // Инициировать выключение компьютера
+ int PowerOffComputer()
+diff -ur FreeArc-0.666-sources-org/Unarc/makefile FreeArc-0.666-sources/Unarc/makefile
+--- FreeArc-0.666-sources-org/Unarc/makefile	2010-03-21 12:57:28.000000000 -0400
++++ FreeArc-0.666-sources/Unarc/makefile	2014-11-08 14:37:42.000000000 -0500
+@@ -3,7 +3,7 @@
+ windows: mkdir FreeArc.fmt unarc.exe unarc.dll arc.sfx freearc.sfx freearc-installer.sfx freearc-installer-nodelete.sfx
+ unix: mkdir unarc arc.linux.sfx arc-mini.linux.sfx arc-tiny.linux.sfx
+ 
+-Extractor_DEFINES = -DFREEARC_DECOMPRESS_ONLY -D_NO_EXCEPTIONS -DUNARC
++Extractor_DEFINES = -DFREEARC_DECOMPRESS_ONLY -D_NO_EXCEPTIONS -DUNARC -DFREEARC_64BIT
+ OBJDIR  = $(TEMPDIR)-unarc
+ LINKOBJ_FAR_PLUGIN = $(OBJDIR)/Environment.o $(OBJDIR)/Common.o $(OBJDIR)/CompressionLibrary.o \
+                      $(OBJDIR)/C_LZMA.o
+@@ -18,7 +18,7 @@
+ HEADERS =  ../Compression/Compression.h ../Compression/Common.h
+ 
+ LINK_FLAGS = -L$(LIBDIR) -Xlinker --large-address-aware -lstdc++ -s
+-UNIX_LINK_FLAGS = -L$(LIBDIR) -lstdc++ -lrt -lpthread -s
++UNIX_LINK_FLAGS = -L$(LIBDIR) -lstdc++ -lpthread -s
+ 
+ 
+ CODE_FLAGS  = -fno-exceptions -fno-rtti -Wall \

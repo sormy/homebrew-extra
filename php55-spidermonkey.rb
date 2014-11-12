@@ -1,4 +1,4 @@
-require File.join(File.dirname(__FILE__), '../../homebrew/homebrew-php/Formula/abstract-php-extension')
+require File.join(File.dirname(__FILE__), '../../homebrew/homebrew-php/Abstract/abstract-php-extension')
 
 class Php55Spidermonkey < AbstractPhp55Extension
   init

@@ -1,0 +1,289 @@
+diff -ur FreeArc-0.67-alpha-sources.org/ArhiveFileList.hs FreeArc-0.67-alpha-sources/ArhiveFileList.hs
+--- FreeArc-0.67-alpha-sources.org/ArhiveFileList.hs	2014-03-15 15:59:29.000000000 -0400
++++ FreeArc-0.67-alpha-sources/ArhiveFileList.hs	2014-11-12 14:06:07.000000000 -0500
+@@ -14,7 +14,7 @@
+ import Data.Maybe
+ import System.IO
+ import System.IO.Unsafe
+-import Foreign
++import Foreign hiding (unsafePerformIO)
+ import Foreign.C
+ import Foreign.Marshal.Alloc
+ 
+diff -ur FreeArc-0.67-alpha-sources.org/ByteStream.hs FreeArc-0.67-alpha-sources/ByteStream.hs
+--- FreeArc-0.67-alpha-sources.org/ByteStream.hs	2014-03-15 15:59:29.000000000 -0400
++++ FreeArc-0.67-alpha-sources/ByteStream.hs	2014-11-12 13:26:52.000000000 -0500
+@@ -294,8 +294,8 @@
+   readList :: InStream -> Int -> IO [a]
+   readList buffer length  =  replicateM length (read buffer)
+ 
+-  {-# NOINLINE read #-}
+-  {-# NOINLINE write #-}
++  --{-# NOINLINE read #-}
++  --{-# NOINLINE write #-}
+   {-# NOINLINE readList #-}
+   {-# NOINLINE writeList #-}
+ 
+diff -ur FreeArc-0.67-alpha-sources.org/Charsets.hs FreeArc-0.67-alpha-sources/Charsets.hs
+--- FreeArc-0.67-alpha-sources.org/Charsets.hs	2014-03-15 15:59:29.000000000 -0400
++++ FreeArc-0.67-alpha-sources/Charsets.hs	2014-11-12 13:22:18.000000000 -0500
+@@ -25,7 +25,7 @@
+ import Data.Char
+ import Data.IORef
+ import Data.List
+-import Foreign
++import Foreign hiding (unsafePerformIO)
+ import Foreign.C
+ import Foreign.Marshal.Alloc
+ import System.Posix.Internals
+diff -ur FreeArc-0.67-alpha-sources.org/Client7z.cpp FreeArc-0.67-alpha-sources/Client7z.cpp
+--- FreeArc-0.67-alpha-sources.org/Client7z.cpp	2014-03-15 15:59:29.000000000 -0400
++++ FreeArc-0.67-alpha-sources/Client7z.cpp	2014-11-12 01:28:53.000000000 -0500
+@@ -1,9 +1,11 @@
+ // Client7z.cpp
+ #define EXTERNAL_CODECS
+ 
+-#include <windows.h>
+ #include <stdio.h>
++#ifdef FREEARC_WIN
++#include <windows.h>
+ #include <tchar.h>
++#endif
+ #include "tabi.h"
+ 
+ // Required for SetProperties in p7zip code
+diff -ur FreeArc-0.67-alpha-sources.org/Compression/Common.cpp FreeArc-0.67-alpha-sources/Compression/Common.cpp
+--- FreeArc-0.67-alpha-sources.org/Compression/Common.cpp	2014-03-15 15:59:29.000000000 -0400
++++ FreeArc-0.67-alpha-sources/Compression/Common.cpp	2014-11-12 00:17:42.000000000 -0500
+@@ -668,6 +668,55 @@
+ #include <unistd.h>
+ #include <sys/resource.h>
+ 
++#ifdef __MACH__
++
++#include <sys/types.h>
++#include <sys/sysctl.h>
++
++uint64 GetPhysicalMemory (void)
++{
++  uint64 physmem;
++  size_t len = sizeof physmem;
++  static int mib[2] = { CTL_HW, HW_PHYSMEM };
++
++  if (sysctl (mib, 2, &physmem, &len, NULL, 0) == 0
++      && len == sizeof (physmem))
++    return physmem;
++}
++
++uint64 GetAvailablePhysicalMemory (void)
++{
++  uint64 usermem;
++  size_t len = sizeof usermem;
++  static int mib[2] = { CTL_HW, HW_USERMEM };
++
++  if (sysctl (mib, 2, &usermem, &len, NULL, 0) == 0
++      && len == sizeof (usermem))
++    return usermem;
++}
++
++int GetProcessorsCount (void)
++{
++  int online = 0, configured = 0;
++  int mib[2];
++  size_t len;
++
++  mib[0] = CTL_HW;
++  mib[1] = HW_AVAILCPU;
++  len = sizeof (int);
++  sysctl (mib, 2, &online, &len, NULL, 0);
++  mib[1] = HW_NCPU;
++  len = sizeof (int);
++  sysctl (mib, 2, &configured, &len, NULL, 0);
++
++  if (online > configured)
++    online = configured;
++
++  return (online > 0) ? online : configured;
++}
++
++#else
++
+ uint64 GetPhysicalMemory (void)
+ {
+   return uint64(sysconf(_SC_PHYS_PAGES)) * sysconf(_SC_PAGE_SIZE);
+@@ -683,6 +732,8 @@
+   return sysconf(_SC_NPROCESSORS_ONLN);
+ }
+ 
++#endif
++
+ void SetFileDateTime(CFILENAME Filename, time_t t)
+ {
+   if (t<0)  t=INT_MAX;  // Иначе получаем вылет :(
+@@ -905,6 +956,33 @@
+ #ifdef FREEARC_UNIX
+ #include <sys/time.h>
+ #include <sys/resource.h>
++
++#ifdef __MACH__
++
++#include <mach/mach.h>
++#include <mach/mach_time.h>
++
++double GetGlobalTime (void)
++{
++  // stub
++  return 0;
++}
++
++double GetCPUTime (void)
++{
++  struct rusage usage;
++  int res = getrusage (RUSAGE_SELF, &usage);
++  return res? -1 : (usage.ru_utime.tv_sec + ((double)usage.ru_utime.tv_usec) / 1000000);
++}
++
++double GetThreadCPUTime (void)
++{
++  // stub
++  return 0;
++}
++
++#else
++
+ // Returns number of wall-clock seconds since some moment
+ double GetGlobalTime (void)
+ {
+@@ -928,6 +1006,9 @@
+   int res = getrusage (RUSAGE_THREAD, &usage);
+   return res? -1 : (usage.ru_utime.tv_sec + ((double)usage.ru_utime.tv_usec) / 1000000);
+ }
++
++#endif
++
+ #endif // FREEARC_UNIX
+ 
+ // Time-based random number
+diff -ur FreeArc-0.67-alpha-sources.org/Compression/DisPack/DisPack.cpp FreeArc-0.67-alpha-sources/Compression/DisPack/DisPack.cpp
+--- FreeArc-0.67-alpha-sources.org/Compression/DisPack/DisPack.cpp	2014-03-15 15:59:29.000000000 -0400
++++ FreeArc-0.67-alpha-sources/Compression/DisPack/DisPack.cpp	2014-11-12 00:55:47.000000000 -0500
+@@ -2,7 +2,11 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#ifdef __MACH__
++#include <sys/malloc.h>
++#else
+ #include <malloc.h>
++#endif
+ #include <assert.h>
+ 
+ /* Version history:
+diff -ur FreeArc-0.67-alpha-sources.org/Compression/PPMD/makefile FreeArc-0.67-alpha-sources/Compression/PPMD/makefile
+--- FreeArc-0.67-alpha-sources.org/Compression/PPMD/makefile	2014-03-15 15:59:29.000000000 -0400
++++ FreeArc-0.67-alpha-sources/Compression/PPMD/makefile	2014-11-12 00:59:40.000000000 -0500
+@@ -6,7 +6,7 @@
+               -Wno-unknown-pragmas -Wno-sign-compare -Wno-conversion
+ OPT_FLAGS   = -O1 \
+               -fomit-frame-pointer -fstrict-aliasing \
+-              -fforce-addr -funroll-all-loops -floop-optimize
++              -fforce-addr -funroll-all-loops
+ DEBUG_FLAGS = -g0
+ CFLAGS = $(CODE_FLAGS) $(OPT_FLAGS) $(DEBUG_FLAGS) $(DEFINES)
+ 
+diff -ur FreeArc-0.67-alpha-sources.org/Compression/compile FreeArc-0.67-alpha-sources/Compression/compile
+--- FreeArc-0.67-alpha-sources.org/Compression/compile	2014-03-15 15:59:30.000000000 -0400
++++ FreeArc-0.67-alpha-sources/Compression/compile	2014-11-12 01:18:49.000000000 -0500
+@@ -38,12 +38,12 @@
+ cd 4x4
+ make
+ cd ..
+-cd CLS
+-make
+-cd ..
++#cd CLS
++#make
++#cd ..
+ cd _Encryption
+ make
+ cd ..
+-cd _Examples
+-make
+-cd ..
++#cd _Examples
++#make
++#cd ..
+diff -ur FreeArc-0.67-alpha-sources.org/Compression/makefile FreeArc-0.67-alpha-sources/Compression/makefile
+--- FreeArc-0.67-alpha-sources.org/Compression/makefile	2014-03-15 15:59:30.000000000 -0400
++++ FreeArc-0.67-alpha-sources/Compression/makefile	2014-11-12 00:57:25.000000000 -0500
+@@ -19,4 +19,4 @@
+ 	$(GCC) -c $(CFLAGS) -fexceptions -o $*.o $<
+ 
+ _TABI/TABI.hs: _TABI/TABI.hsc
+-	hsc2hs --cc=ghc $<
++	hsc2hs --cc=ghc --lflag=-no-hs-main $<
+diff -ur FreeArc-0.67-alpha-sources.org/Files.hs FreeArc-0.67-alpha-sources/Files.hs
+--- FreeArc-0.67-alpha-sources.org/Files.hs	2014-03-15 15:59:30.000000000 -0400
++++ FreeArc-0.67-alpha-sources/Files.hs	2014-11-12 13:16:58.000000000 -0500
+@@ -25,10 +25,10 @@
+ import Data.Char
+ import Data.IORef
+ import Data.List
+-import Foreign
++import Foreign hiding (unsafePerformIO)
+ import Foreign.C
+ import Foreign.Marshal.Alloc
+-import System.Posix.Internals (o_BINARY, o_TRUNC)
++import System.Posix.Internals (o_BINARY, o_TRUNC, c_stat, st_mode, st_size, st_mtime, sizeof_stat, CStat)
+ import System.Posix.Types
+ import System.IO
+ import System.IO.Error hiding (try, catch)
+diff -ur FreeArc-0.67-alpha-sources.org/Unarc/makefile FreeArc-0.67-alpha-sources/Unarc/makefile
+--- FreeArc-0.67-alpha-sources.org/Unarc/makefile	2014-03-15 15:59:30.000000000 -0400
++++ FreeArc-0.67-alpha-sources/Unarc/makefile	2014-11-12 00:50:05.000000000 -0500
+@@ -27,7 +27,7 @@
+ 
+ CODE_FLAGS  = -fno-exceptions -fno-rtti -Wall \
+               -Wno-unknown-pragmas -Wno-sign-compare -Wno-conversion
+-OPT_FLAGS   = -march=i486 -mtune=pentiumpro -ffast-math \
++OPT_FLAGS   = -march=x86_64 -ffast-math \
+               -fomit-frame-pointer -fstrict-aliasing \
+               -fforce-addr
+ DEBUG_FLAGS = -g0
+diff -ur FreeArc-0.67-alpha-sources.org/compile FreeArc-0.67-alpha-sources/compile
+--- FreeArc-0.67-alpha-sources.org/compile	2014-03-15 15:59:30.000000000 -0400
++++ FreeArc-0.67-alpha-sources/compile	2014-11-12 14:04:04.000000000 -0500
+@@ -4,7 +4,7 @@
+ tempdir=$ctempdir$1$2$3
+ mkdir -p $tempdir
+ mkdir -p $ctempdir
+-defines="-DFREEARC_PACKED_STRINGS -DFREEARC_UNIX -DFREEARC_INTEL_BYTE_ORDER -optc-DFREEARC_UNIX -optc-DFREEARC_INTEL_BYTE_ORDER"
++defines="-DFREEARC_NO_LUA -DFREEARC_PACKED_STRINGS -DFREEARC_UNIX -DFREEARC_INTEL_BYTE_ORDER -optc-DFREEARC_UNIX -optc-DFREEARC_INTEL_BYTE_ORDER"
+ # ******** -DFREEARC_WIN -DFREEARC_MOTOROLA_BYTE_ORDER -DFREEARC_ONLY_ALIGNED_ACCESS *******
+ cp unix-common.mak common.mak
+ cd Compression
+@@ -13,7 +13,7 @@
+ cd ..
+ make
+ rm $exe
+-c_modules="$ctempdir/Environment.o $ctempdir/URL.o $ctempdir/Common.o $ctempdir/CompressionLibrary.o $ctempdir/C_PPMD.o $ctempdir/C_LZP.o $ctempdir/C_LZMA.o $ctempdir/C_BCJ.o $ctempdir/C_GRZip.o $ctempdir/C_Dict.o $ctempdir/C_REP.o $ctempdir/C_MM.o $ctempdir/C_TTA.o $ctempdir/C_Tornado.o $ctempdir/C_Delta.o $ctempdir/C_4x4.o $ctempdir/C_External.o $ctempdir/C_Encryption.o $ctempdir/Client7z.o -optl-s -lstdc++ -lncurses -lcurl"
++c_modules="$ctempdir/Environment.o $ctempdir/URL.o $ctempdir/Common.o $ctempdir/CompressionLibrary.o $ctempdir/C_PPMD.o $ctempdir/C_LZP.o $ctempdir/C_LZMA.o $ctempdir/C_BCJ.o $ctempdir/C_GRZip.o $ctempdir/C_Dict.o $ctempdir/C_REP.o $ctempdir/C_MM.o $ctempdir/C_TTA.o $ctempdir/C_Tornado.o $ctempdir/C_Delta.o $ctempdir/C_4x4.o $ctempdir/C_External.o $ctempdir/C_Encryption.o -optl-s -lstdc++ -lncurses -lcurl"
+ for option; do if [[ $option == -DFREEARC_GUI ]]; then c_modules="$c_modules $ctempdir/GuiEnvironment.o"; fi; done
+ options="-iCompression -iCompression/_TABI -threaded -fglasgow-exts -XUndecidableInstances -XOverlappingInstances -XNoMonomorphismRestriction -XBangPatterns"
+ ghc_rts_options="+RTS -A2m"
+diff -ur FreeArc-0.67-alpha-sources.org/makefile FreeArc-0.67-alpha-sources/makefile
+--- FreeArc-0.67-alpha-sources.org/makefile	2014-03-15 15:59:30.000000000 -0400
++++ FreeArc-0.67-alpha-sources/makefile	2014-11-12 01:33:20.000000000 -0500
+@@ -1,10 +1,10 @@
+ include common.mak
+ 
+-ALL: $(TEMPDIR)/Environment.o $(TEMPDIR)/GuiEnvironment.o $(TEMPDIR)/URL.o $(TEMPDIR)/Client7z.o
++ALL: $(TEMPDIR)/Environment.o $(TEMPDIR)/GuiEnvironment.o $(TEMPDIR)/URL.o
+ 
+ CODE_FLAGS = -fno-exceptions -fno-rtti -Wall \
+                 -Wno-unknown-pragmas -Wno-sign-compare -Wno-conversion
+-OPT_FLAGS   = -O3 -march=i486 -mtune=pentiumpro \
++OPT_FLAGS   = -O2 -march=x86_64 \
+               -fomit-frame-pointer -fstrict-aliasing \
+               -ffast-math -fforce-addr
+ DEBUG_FLAGS = -g0
