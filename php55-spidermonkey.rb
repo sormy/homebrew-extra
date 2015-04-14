@@ -10,10 +10,12 @@ class Php55Spidermonkey < AbstractPhp55Extension
 
   depends_on 'spidermonkey'
 
-  patch :p0, :DATA
+  stable do
+    patch :p0, :DATA
+  end
 
   def install
-    Dir.chdir "spidermonkey-#{version}"
+    Dir.chdir "spidermonkey-#{version}" if Dir.exists? "spidermonkey-#{version}"
 
     ENV.universal_binary if build.universal?
 
