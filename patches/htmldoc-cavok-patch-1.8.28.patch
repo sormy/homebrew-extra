@@ -1,0 +1,857 @@
+diff -rupN htmldoc-1.8.28/README.txt htmldoc-1.8.28-cavok/README.txt
+--- htmldoc-1.8.28/README.txt	2014-01-05 15:41:32.000000000 -0500
++++ htmldoc-1.8.28-cavok/README.txt	2015-04-18 02:17:36.000000000 -0400
+@@ -1,6 +1,41 @@
+ README.txt - 2014-01-05
+ -----------------------
+ 
++MODIFICATIONS
++
++    1) implements a <!-- BLOCK N --> comment directive 
++    that prevents the following N table rows from 
++    being started on the current page if those rows
++    would not completely fit on the current page.
++    The comment should immediately precede the <tr>.
++    The "BLOCK" keyword should work in either case,
++    but is only guaranteed in uppercase.
++
++    <!-- BLOCK --> is equivalent to  <!-- BLOCK 1 -->
++
++    2) implements the attribute <tr repeat=1> to force
++    repeat of a table row as the first row on every
++    new page. The row may contain <td> or <th> cell tags;
++    if <th> the content is bolded as in normal operation.
++    The "repeat" keyword should work in either case,
++    but is only guaranteed in lowercase.
++
++    3) implements the attribute <div repeat=0> to force
++    repeat of a <div> block at the top of every page in
++    a document. Such a <div> block is rendered on *every*
++    page immediately after any headers defined on the 
++    command line (or with the <!-- HEADER --> comment), 
++    regardless of where it first occurs, even if other 
++    material precedes it in the raw html. The "repeat" 
++    keyword should work in either case, but is only 
++    guaranteed in lowercase.
++
++    The space reserved for the repeating <div> is approximate,
++    and errs on the liberal side; it may be overridden in
++    two ways. To tweak the calculated space larger/smaller, 
++    use +/-nnn, as in <div repeat="-20">; to specify an 
++    absolute height, use an unsigned amount: <div repeat=90>
++
+ INTRODUCTION
+ 
+     This README file describes HTMLDOC, a HTML processing program that generates
+diff -rupN htmldoc-1.8.28/README.txt.orig htmldoc-1.8.28-cavok/README.txt.orig
+--- htmldoc-1.8.28/README.txt.orig	1969-12-31 19:00:00.000000000 -0500
++++ htmldoc-1.8.28-cavok/README.txt.orig	2015-04-18 02:17:05.000000000 -0400
+@@ -0,0 +1,141 @@
++README.txt - 2014-01-05
++-----------------------
++
++INTRODUCTION
++
++    This README file describes HTMLDOC, a HTML processing program that generates
++    HTML, PostScript, and PDF files with a table of contents.
++
++    ****************************************************************************
++    ****                                                                    ****
++    ****   HTMLDOC CURRENTLY ONLY SUPPORTS HTML 3.2 AND DOES NOT SUPPORT    ****
++    ****   STYLE SHEETS!  PLEASE READ THE DOCUMENTATION BEFORE ASKING       ****
++    ****   QUESTIONS.                                                       ****
++    ****                                                                    ****
++    ****************************************************************************
++
++    HTMLDOC is copyright 1997-2014 by Michael R Sweet and is provided under the
++    terms of version 2 of the GNU General Public License with an exception that
++    allows distribution of binaries that are linked against OpenSSL.  See the
++    LEGAL STUFF section below for details.
++
++    Documentation for HTMLDOC is available in the "doc" subdirectory and is
++    generated from HTML "source" files into HTML, PostScript, and PDF using
++    HTMLDOC.
++
++    HTMLDOC supports most HTML 3.2 and some HTML 4.0 markup as well as BMP, GIF,
++    JPEG, and PNG images.  Eventually HTMLDOC will be compliant with HTML 4.0
++    and support CSS.
++
++
++INTERNET RESOURCES
++
++    For general discussions about HTMLDOC, subscribe to the HTMLDOC mailing list
++    referenced from the HTMLDOC project page:
++
++        https://www.msweet.org/projects.php/HTMLDOC
++
++
++USING HTMLDOC
++
++    COMPLETE DOCUMENTATION FOR HTMLDOC IS AVAILABLE IN THE "doc" SUBDIRECTORY.
++    THE FOLLOWING PROVIDES BASIC INFORMATION ON USING HTMLDOC AT THE
++    COMMAND-LINE AND DOES NOT DISCUSS THE GUI OR WEB SERVER FUNCTIONALITY.
++
++    HTMLDOC accepts a list of HTML "source" files and will generate HTML,
++    PostScript, or PDF output via command-line options.  A summary of
++    command-line options can be shown with the "--help" option:
++
++        htmldoc --help
++
++    HTMLDOC normally expects "structured" documents, with chapters, etc.
++    Chapters begin with a <H1> markup and continue to the end of the listed HTML
++    files or the next <H1> markup, whichever comes first.  To convert
++    unstructured documents such as web pages, use the "--webpage" option to
++    HTMLDOC:
++
++        htmldoc --webpage ...
++
++    To generate a Level 2 PostScript file you might use:
++
++        htmldoc -f outfile.ps chapter1.html ... chapterN.html
++
++    Similarly you can generate a PDF file of the same source files using:
++
++        htmldoc -f outfile.pdf chapter1.html ... chapterN.html
++
++    Finally, to generate HTML files for viewing (with a linked table-
++    of-contents) do the following:
++
++        htmldoc -t html -d outdir chapter1.html ... chapterN.html
++
++    or:
++
++        htmldoc -t html -f outfile.html chapter1.html ... chapterN.html
++
++    A complete description of all command-line options and HTML guidelines can
++    be found in the software users manual in the "doc" directory.
++
++
++CURRENT LIMITATIONS
++
++    - No support for style sheets.
++    - No support for HTML forms.
++    - HTML 4.0 table elements and attributes are not supported (background,
++      rules, THEAD, TFOOT, etc.)
++    - No support for encrypting PDFs with 256-bit AES.
++
++
++CREDITS
++
++    Many thanks to Leonard Rosenthol for providing changes to support a Mac OS
++    version of HTMLDOC.
++
++    The table VALIGN and "HALF PAGE" code was contributed by D. Richard Hipp.
++
++    The multiple header/footer image code was contributed by Lynn Pye.
++
++    The RC4 encryption code is from librc4 1.1 by the folks at Carnegie Mellon
++    University.
++
++    The MD5 hash code is from L. Peter Deutsch at Aladdin Enterprises (creators
++    of Ghostscript, among other things).
++
++
++ENCRYPTION SUPPORT
++
++    HTMLDOC includes code to encrypt PDF document files using the RC4 algorithm
++    with up to a 128-bit key. While this software and code may be freely used
++    and exported under current US laws, other countries may restrict your use
++    and possession of this code and software.
++
++
++LEGAL STUFF
++
++    HTMLDOC is copyright 1997-2014 by Michael R Sweet.  This program is free
++    software.  Distribution and use rights are outlined in the file
++    "COPYING.txt".
++
++    The Adobe Portable Document Format is Copyright 1985-2005 by Adobe Systems
++    Incorporated. Adobe, FrameMaker, and PostScript are registered trademarks of
++    Adobe Systems, Incorporated.
++
++    The Graphics Interchange Format is the copyright and GIF is the service mark
++    property of CompuServe Incorporated.
++
++    Intel is a registered trademark of Intel Corporation.
++
++    Linux is a registered trademark of Linus Torvalds.
++
++    Mac OS is a registered trademark of Apple Inc.
++
++    Microsoft and Windows are registered trademarks of Microsoft Corporation.
++
++    Solaris is a registered trademark of Sun Microsystems, Inc.
++
++    SPARC is a registered trademark of SPARC International, Inc.
++
++    UNIX is a registered trademark of the X/Open Company, Ltd.
++
++    This software is based in part on the work of the Independent JPEG Group and
++    FLTK project.
+diff -rupN htmldoc-1.8.28/htmldoc/ps-pdf.cxx htmldoc-1.8.28-cavok/htmldoc/ps-pdf.cxx
+--- htmldoc-1.8.28/htmldoc/ps-pdf.cxx	2014-01-05 22:42:43.000000000 -0500
++++ htmldoc-1.8.28-cavok/htmldoc/ps-pdf.cxx	2015-04-18 02:23:37.000000000 -0400
+@@ -107,6 +107,17 @@
+  * Include necessary headers.
+  */
+ 
++#define DMT_ROW_KEEP	1	// row blocking
++#define DMT_ROW_REP	1	// repeating <th> row
++#define DMT_DIV_REP	1	// repeating <div>
++#define DMT_BLK_BEG "BLOCK"
++#define DMT_BLK_END "ENDBLOCK"
++#define DMT_BLK_ALL "K_BLK_ALL"
++#define DMT_BLK_BEG_LEN strlen(DMT_BLK_BEG)
++#define DMT_BLK_END_LEN strlen(DMT_BLK_END)
++#define DMT_BLK_ALL_LEN strlen(DMT_BLK_ALL)
++#define DMT_REP_KEY "repeat"
++
+ /*
+  * The GCC compiler on HP-UX has a nasty habit of incorrectly "fixing"
+  * the vmtypes.h header file provided with HP-UX.  The following
+@@ -335,6 +346,20 @@ static rc4_context_t	encrypt_state;
+ static md5_byte_t	file_id[16];
+ 
+ 
++// these initializations are repeated in pspdf_export()
++#if DMT_ROW_KEEP
++static int dmt_blk_act = 0;		// in a block now?
++static int dmt_blk_all = 0;		// all cells are blocks?
++#endif
++
++#if DMT_DIV_REP
++static tree_t *dmt_div_node = NULL;
++static int dmt_div_parm;	// signed value
++static int dmt_div_rel;		// 1 if parm is rel, else 0
++static float dmt_div_run;	// run height for allocation
++#endif
++
++
+ /*
+  * Local functions...
+  */
+@@ -458,6 +483,136 @@ static int	write_type1(FILE *out, typefa
+ 			    style_t style);
+ static void	write_utf16(FILE *out, uchar *s);
+ 
++#if DMT_ROW_KEEP
++static float   dmt_get_txt_run(tree_t *t, float *left, float *right, float *bottom,
++							float *top, float *x, float *y, 
++				tree_t *cpara, int *needspace);
++#endif
++
++
++#if DMT_DIV_REP
++
++// does this <div> tag have a repeat parm?
++// returns 1 if true, else 0;
++//
++// updates dmt_div_parm, dmt_div_rel if found:
++// this will overwrite with identical values
++// when called from body, but that's ok
++static int check_rep_div(tree_t *t)
++{
++	var_t	*var;
++	const char *pv;
++	int vx;
++
++	if (t->markup != MARKUP_DIV)
++		return 0;
++
++	for (vx = 0, var = t->vars; vx < t->nvars; vx++, var++)
++	{
++		if (strcasecmp((const char *)var->name,DMT_REP_KEY) == 0)
++		{
++			pv = (const char *)var->value;
++			if (*pv == '+' || *pv == '-')
++				dmt_div_rel = 1;
++			dmt_div_parm = atoi(pv);
++			return 1;
++		}
++	}
++
++	return 0;
++}
++
++
++// scan for and parse a <div> tag
++// with a repeat attribute;
++// tag must be directly under <body> tag;
++// input is top-level document
++static void parse_rep_div(tree_t *doc)
++{
++	tree_t *t;
++
++	dmt_div_node = NULL;	// reset globals
++	dmt_div_parm = 0;
++	dmt_div_rel = 0;
++
++	t = doc->child;
++	while (t != NULL && dmt_div_node == NULL)
++	{
++		if (t->markup == MARKUP_DIV)
++		{
++			if (check_rep_div(t))
++				// found, set global pointer
++				dmt_div_node = t;	
++			t = t->next;	// look at next tag
++		}
++		else if (t->markup == MARKUP_BODY)
++			t = t->child;	// look at top-level tags
++		else if (t->markup == MARKUP_HTML)
++			t = t->child;	// look for body tag
++		else
++			t = t->next;	// look at next tag
++	}
++}
++
++
++static void calc_rep_div_run(float left, float right, float bottom, float top)
++{
++	float cand_run;
++	float x, y;
++	int needspace;
++
++	dmt_div_run = 50.0f;	// default safety
++
++	if (dmt_div_parm > 0 && dmt_div_rel == 0)
++	{
++		// user specified absolute height
++		dmt_div_run = (float) dmt_div_parm;
++		return;
++	}
++	// else etimate run height
++
++	x = left;
++	y = top;
++	needspace = 0;
++
++	if (dmt_div_node == NULL || dmt_div_node->child == NULL)
++		return;
++
++	cand_run = dmt_get_txt_run(dmt_div_node->child,
++		&left, &right, &bottom, &top, &x, &y, NULL, &needspace);
++	if (cand_run == -1)
++		return;
++	dmt_div_run = cand_run;
++
++	if (dmt_div_rel != 0)
++		// user specified relative height
++		dmt_div_run += (float) dmt_div_parm;
++}
++
++
++// render the repeating <div> content
++// in the space reserved
++static void dmt_render_rep_div(int page, float left, float right, float bottom, float top)
++{
++	float x, y;
++	int needspace;
++
++	if (dmt_div_node == NULL || dmt_div_node->child == NULL)
++		return;
++
++	top = top + (float) dmt_div_run;
++
++	x = left;
++	y = top;
++	needspace = 0;
++
++	parse_doc(dmt_div_node->child, &left, &right, &bottom, &top, &x, &y, 
++		&page, NULL, &needspace);
++}
++
++
++#endif	// DMT_DIV_REP
++
+ 
+ /*
+  * 'pspdf_export()' - Export PostScript/PDF file(s)...
+@@ -501,6 +656,16 @@ pspdf_export(tree_t *document,	/* I - Do
+   int		needspace;	/* Need whitespace */
+ 
+ 
++#if DMT_DIV_REP
++  tree_t	*dmt_doc;
++#endif
++
++#if DMT_ROW_KEEP			// best place for this?
++	dmt_blk_act = 0;		// in a block now?
++	dmt_blk_all = 0;		// all cells are blocks?
++#endif
++
++
+  /*
+   * Figure out the printable area of the output page...
+   */
+@@ -845,7 +1010,13 @@ pspdf_export(tree_t *document,	/* I - Do
+ 
+   for (chapter = 1; chapter <= TocDocCount; chapter ++)
+     for (page = chapter_starts[chapter]; page <= chapter_ends[chapter]; page ++)
++	 {
++#if DMT_DIV_REP
++		if (dmt_div_node != NULL)
++		   dmt_render_rep_div(page, left, right, bottom, top);
++#endif
+       pspdf_prepare_page(page);
++	 }
+ 
+  /*
+   * Parse the table-of-contents if necessary...
+@@ -886,6 +1057,20 @@ pspdf_export(tree_t *document,	/* I - Do
+     else
+       top = PagePrintLength - 2 * HeadFootSize;
+ 
++#if DMT_DIV_REP
++    dmt_div_node = NULL;        // safety init
++    // pre-scan doc for repeating div,
++    // so we can allocate header space
++    parse_rep_div(document);
++    // sets dmt_div_node
++    if (dmt_div_node != NULL)
++    { 
++      calc_rep_div_run(left, right, bottom, top); 
++      // sets dmt_div_run
++      top = top - dmt_div_run;
++    }
++#endif
++
+     // Adjust bottom margin as needed...
+     for (pos = 0; pos < 3; pos ++)
+       if (TocFooter[pos])
+@@ -3925,6 +4110,150 @@ parse_contents(tree_t *t,		/* I - Tree t
+ }
+ 
+ 
++#if DMT_ROW_KEEP
++
++//
++// 'dmt_get_txt_run()' - find the height in pixels of the text in tree t
++//
++// the parameter list basically mimics parse_doc,
++// which is what parse_table calls to render
++// actual cell content;
++// return value of -1 means
++// text run was not measured;
++// may be called recursively;
++// probably dont need all these args;
++// probably shouldnt be receiving pointers either
++static float
++dmt_get_txt_run(tree_t *t,		/* I - Tree to parse */
++		float	*left,	/* I - Left margin */
++		float	*right,	/* I - Printable width */
++		float	*bottom,	/* I - Bottom margin */
++		float	*top,		/* I - Printable top */
++		float	*x,		/* IO - X position */
++		float	*y,		/* IO - Y position */
++//		int	*page,	/* IO - Page # */
++		tree_t *cpara,	/* I - Current paragraph */
++		int	*needspace)	/* I - Need whitespace before this element */
++{
++	float cell_width;
++	float max_height;
++	float run_height;	// running height, including current line
++	float run_width;	// running width of current line
++	float tok_width;	// width of current token
++
++	float tmp_run;		// temp result for sub elements
++
++	tree_t *tr, *td;	// table row, table cell
++	float	max_td_run;
++
++	cell_width = *right - *left;
++
++	// this is just a simple pass thru for proof of concept:
++	// we're just going to pour all the text in tree t
++	// into the width passed in, and see how much
++	// vertical space it takes, as if nothing else matters;
++	// for inspiration we look at parse_paragraph,
++	// which seems to do the actual rendering for text
++
++	max_height = 0.0f;
++	run_height = 0.0f;
++	run_width = 0.0f;
++	while (t != NULL)
++	{
++		switch (t->markup)
++		{
++		case MARKUP_NONE:
++			// the basic case - inline content
++	      if (t->data == NULL)
++				break;
++			tok_width = get_width(t->data, t->typeface, t->style, t->size);
++			if (run_width + tok_width > cell_width)
++			{
++				// tally completed line, with leading
++				run_height += max_height * _htmlSpacings[0] / _htmlSizes[0];
++
++				// start a new line
++				run_width = tok_width;
++				max_height = t->height;
++			}
++			else
++			{
++				// append to existing line
++				run_width += tok_width;
++				if (t->height > max_height)
++					max_height = t->height;
++			}
++			break;
++	      
++		case MARKUP_BR:
++			// terminate the current line, or skip
++			if (run_width > 0)
++				run_height += max_height * _htmlSpacings[0] / _htmlSizes[0];
++			else
++				run_height += _htmlSpacings[SIZE_P];	// reasonable ?
++			run_width = max_height = 0.0f;
++			break;
++
++		case MARKUP_P:
++		case MARKUP_DIV:
++      case MARKUP_TABLE:
++			// these all terminate the current line and skip
++			if (run_width > 0)
++				run_height += max_height * _htmlSpacings[0] / _htmlSizes[0];
++			run_width = max_height = 0.0f;
++			run_height += _htmlSpacings[SIZE_P];	// reasonable ?
++
++			// and all have a child node
++			if (t->child == NULL)
++				break;
++
++			if (t->markup != MARKUP_TABLE)
++			{
++				tmp_run = dmt_get_txt_run(t->child,
++					left, right, bottom, top, x, y, cpara, needspace);
++				if (tmp_run == -1)
++					return -1;
++				run_height += tmp_run;
++				break;
++			}
++
++			// else MARKUP_TABLE, the worst case :)
++			for (tr = t->child; tr != NULL; tr = tr->next)
++			{
++//				run_height += (cellspacing + 2 * cellpadding);
++				max_td_run = 0;
++				for (td = tr->child; td != NULL; td = td->next)
++				{
++					// assume for now that no text needs to wrap
++					tmp_run = dmt_get_txt_run(td->child,
++						left, right, bottom, top, x, y, cpara, needspace);
++					if (tmp_run == -1)
++						return -1;
++					if (tmp_run > max_td_run)
++						max_td_run = tmp_run;
++				}
++				run_height += max_td_run;
++			}
++			run_height += _htmlSpacings[SIZE_P];
++			break;
++
++		default:
++			break;
++		}
++
++
++		t = t->next;
++	}
++
++	// tally partial line, with leading
++	run_height += max_height * _htmlSpacings[0] / _htmlSizes[0];
++
++	return run_height;
++}
++
++#endif	// DMT_ROW_KEEP
++
++
+ /*
+  * 'parse_doc()' - Parse a document tree and produce rendering list output.
+  */
+@@ -4231,6 +4560,12 @@ parse_doc(tree_t *t,		/* I - Tree to par
+           break;
+ 
+       case MARKUP_DIV :
++#if DMT_DIV_REP
++			if (check_rep_div(t))
++				// ignore, processed as header
++				break;
++#endif
++
+           if (para->child != NULL)
+           {
+             parse_paragraph(para, *left, *right, *bottom, *top, x, y, page, *needspace);
+@@ -4692,6 +5027,20 @@ parse_paragraph(tree_t *t,	/* I - Tree t
+   float		linex,
+ 		linewidth;
+   int		firstline;
++  
++  
++#if DMT_TRIAL
++  tree_t	*dmt_temp;
++
++  dmt_temp = t->child;
++  while (dmt_temp != NULL)
++  {
++    dmt_trial_cnt += 1;
++    dmt_temp = dmt_temp->next;
++  }
++  if (dmt_trial_cnt > DMT_TRIAL_MAX_TOKENS)
++    dmt_trial_ok = 0;
++#endif
+ 
+ 
+   DEBUG_printf(("parse_paragraph(t=%p, left=%.1f, right=%.1f, bottom=%.1f, top=%.1f, x=%.1f, y=%.1f, page=%d, needspace=%d\n",
+@@ -5678,6 +6027,30 @@ parse_table(tree_t *t,			// I - Tree to 
+   const char	*htmldoc_debug;		// HTMLDOC_DEBUG env var
+   int		table_debug;		// Do table debugging?
+ 
++#if DMT_ROW_KEEP
++	int	dmt_blk_rows;		// how many rows in block
++	int	dmt_run_invalid;	// could not calc? 1 if true
++	float	dmt_row_offset;	// offset of test row
++	float	dmt_cell_run,		// current cell
++			dmt_row_run,		// current row accum 
++			dmt_tot_run;		// all rows accum
++	int	dmt_row,				// loop counter
++			dmt_col,				// loop counter
++			dmt_colspan;
++	int	dmt_page;
++	int	dmt_space;
++	float	dmt_x,			// x coord to pass to 
++			dmt_y;			// y coord to pass to 
++	float	dmt_bot,			// 
++			dmt_top;
++	tree_t *dmt_row_node;	// current row
++	int	dmt_row_th,		// row index of <th> tags, else -1
++			dmt_row_org,	// currently spoofed row
++			dmt_row_max;	// highest spoofed so far
++	int	dmt_cur_page;
++//	uchar	*dmt_var;
++#endif
++
+ 
+   DEBUG_puts("\n\nTABLE");
+ 
+@@ -6361,9 +6734,38 @@ parse_table(tree_t *t,			// I - Tree to 
+ 
+   table_page = *page;
+   table_y    = *y;
++  
++#if DMT_ROW_REP
++	dmt_row_th = -1;		// amend below if <th> tag found
++	dmt_row_org = -1;		// currently spoofed row
++	dmt_row_max = -1;		// highest spoofed so far
++#endif
+ 
+   for (row = 0; row < num_rows; row ++)
+   {
++  
++#if DMT_ROW_REP
++	// identify header row
++	if (dmt_row_th == -1)
++	{
++		dmt_row_node = cells[row][0]->parent;
++		if ((htmlGetVariable(dmt_row_node, (uchar *)DMT_REP_KEY)) != NULL)
++			dmt_row_th = row;
++	}
++
++	if (dmt_row_org > 0)
++	// just finished a spoofed row, need to do original
++	{
++		row = dmt_row_org;
++		if (!(row < num_rows))
++			break;
++		dmt_row_org = -1;
++	}
++
++	dmt_cur_page = *page;
++
++#endif
++
+     height_var = NULL;
+ 
+     if (cells[row][0] != NULL)
+@@ -6441,6 +6843,13 @@ parse_table(tree_t *t,			// I - Tree to 
+       if (Verbosity)
+         progress_show("Formatting page %d", *page);
+     }
++    
++// dmt - above seems to calc whether there is enough room
++// for one line of text before starting row (widow control)
++// we use similar logic below for BLOCK comment directive, 
++// except we need to look at all text in the cell;
++// presumably (hopefully) it is not worrying about images
++// because they have been accounted for elsewhere
+ 
+     do_valign  = 1;
+     row_y      = *y - cellpadding;
+@@ -6478,6 +6887,120 @@ parse_table(tree_t *t,			// I - Tree to 
+     if (!rowspan)
+       rowspan = 1;
+ 
++// main blocking code:
++// luckily, dont need to worry about headers here,
++#if DMT_ROW_KEEP
++		if (dmt_blk_act || dmt_blk_all)		// check this row?
++		{
++			dmt_run_invalid = 0;			// set to 1 if true
++			dmt_tot_run = 0.0f;			// all rows accum
++
++			dmt_blk_rows = (dmt_blk_act > 1) ? dmt_blk_act : 1;
++
++			dmt_row_offset = 0.0f;		// offset of test row
++			for (dmt_row = row; dmt_row < row + dmt_blk_rows; dmt_row++)
++			{
++				if (dmt_row > row)
++				{
++					// account for space between cells
++					dmt_tot_run += (cellspacing + 2 * cellpadding);
++				}
++				// here we check the text run length
++				// for every column in this row, and take max
++				// this is the last place we can do that
++				// before we get into the column loop
++				// for actual rendering, which is too late
++				dmt_row_run = 0.0f;
++				for (dmt_col = 0; dmt_col < num_cols; dmt_col++)
++				{
++					// borrow some logic from loop below, dont re-use vars
++					for (dmt_colspan = 1; (dmt_col + dmt_colspan) < num_cols; dmt_colspan ++)
++						if (cells[dmt_row][dmt_col] != cells[dmt_row][dmt_col + dmt_colspan])
++							break;
++					dmt_colspan --;
++					// use copies here since they're passed by ref
++					// (vertical quantities are incorrect for
++					// rows > 1, but not currently using in dmt_get_txt_run)
++					dmt_x		= col_lefts[col];				// cf x below
++					dmt_y		= *y - cellpadding;			// cf temp_y below
++					dmt_page	= *page;
++					dmt_space	= 0;
++					// cf right before call to parse_doc()
++					dmt_bot	= bottom + cellpadding;
++					dmt_top	= top - cellpadding;
++
++					dmt_cell_run = -1;	// safety default
++					if (cells[dmt_row][dmt_col] != NULL && cells[dmt_row][dmt_col]->child != NULL)
++					{
++						dmt_cell_run = dmt_get_txt_run(cells[dmt_row][dmt_col]->child,
++									col_lefts + dmt_col, col_rights + dmt_col + dmt_colspan,
++									&dmt_bot, &dmt_top,
++									&dmt_x, &dmt_y, /* &dmt_page, */ NULL, &dmt_space);
++						// this call is analogous to parse_doc() below,
++						// and ideally does identical parsing, but doesnt
++						// render or have any other side effects;
++						// [probably dont need all these args]
++						if (dmt_cell_run == -1)
++							dmt_run_invalid = 1;
++						else if (dmt_cell_run > dmt_row_run)
++							dmt_row_run = dmt_cell_run;
++					}
++				}	// for (dmt_col ...
++
++				if (!dmt_run_invalid)
++				{
++					dmt_tot_run += dmt_row_run;
++				}
++
++			}	// for (dmt_row ...
++
++			// finally, page eject if total run exceeds available space
++			if (!dmt_run_invalid)
++			{
++			// below is essentially the same code from 
++			// before the rowspan calcs above,
++			// but using our more conservative value;
++			// [might condition this on user flag]
++				if (*y < (bottom + 2 * cellpadding + dmt_tot_run))
++//						&& dmt_row_run <= (top - bottom - 2 * cellpadding))
++				{
++					// do all the stuff that normally happens
++					DEBUG_puts("NEW PAGE");
++					*y = top;
++					(*page) ++;
++					if (Verbosity)
++						progress_show("Formatting page %d", *page);
++
++					// and since we changed y and page,
++					// update dependent variables as above
++					row_y		= *y - cellpadding;
++					row_page	= *page;
++				}
++			}
++
++			dmt_blk_act = 0;	// tag expires after row 
++		}
++#endif	// DMT_ROW_KEEP
++
++// floating-header page-detect 
++// really has to go here, 
++// which makes some of the above code
++// a little misinformed, 
++// but doesnt seem to be disastrous
++#if DMT_ROW_REP
++
++	if (dmt_row_th != -1 &&			// there is a header row
++		*page > dmt_cur_page &&		// at top of new page 
++		row > dmt_row_max)			//	dont repeat last one
++	// start a spoofed row
++	{
++		dmt_row_max = dmt_row_org = row;
++		row = dmt_row_th;
++	}
++	dmt_cur_page = *page;
++
++#endif	// DMT_ROW_REP
++
+     for (col = 0; col < num_cols;)
+     {
+       for (colspan = 1; (col + colspan) < num_cols; colspan ++)
+@@ -7331,6 +7854,45 @@ parse_comment(tree_t *t,	/* I - Tree to 
+ 
+       tof = 1;
+     }
++#if DMT_ROW_KEEP
++	 // our code here is pretty simple,
++	 // since we don't react immediately,
++	 // we just note the directive was issued
++    else if (strncasecmp(comment, DMT_BLK_BEG, DMT_BLK_BEG_LEN) == 0)
++    {
++      // mark a block start
++      comment += DMT_BLK_BEG_LEN;
++		if (dmt_blk_act)
++        progress_error(HD_ERROR_BAD_COMMENT,
++                       "block already open: \"%s\"", comment);
++      dmt_blk_act = 1;
++
++		while (isspace(*comment))
++			comment ++;
++		if (isdigit(*comment))
++		{
++			dmt_blk_act = get_measurement(comment);
++			if (dmt_blk_act < 1 || dmt_blk_act > 10)
++				progress_error(HD_ERROR_BAD_COMMENT,
++                       "bad block count: %d", dmt_blk_act);
++		}
++    }
++    else if (strncasecmp(comment, DMT_BLK_END, DMT_BLK_END_LEN) == 0)
++    {
++      // mark a block end
++      comment += DMT_BLK_END_LEN;
++		if (!dmt_blk_act)
++        progress_error(HD_ERROR_BAD_COMMENT,
++                       "no kblock open: \"%s\"", comment);
++      dmt_blk_act = 0;
++    }
++    else if (strncasecmp(comment, DMT_BLK_ALL, DMT_BLK_ALL_LEN) == 0)
++    {
++      // treat all cells as blocks
++      comment += DMT_BLK_ALL_LEN;
++      dmt_blk_all = 1;
++    }
++#endif	// DMT_ROW_KEEP
+     else if (strncasecmp(comment, "NEW PAGE", 8) == 0 &&
+ 	     (!comment[8] || isspace(comment[8])))
+     {

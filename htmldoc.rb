@@ -2,15 +2,15 @@ require 'formula'
 
 class Htmldoc < Formula
   homepage "http://www.msweet.org/projects.php?Z1"
-  url "http://www.msweet.org/files/project1/htmldoc-1.8.27-source.tar.gz"
-  sha256 "64f6d9f40f00f9cc68df6508123e88ed30fef924881fd28dca45358ecd79d320"
+  url "http://www.msweet.org/files/project1/htmldoc-1.8.28-source.tar.gz"
+  sha256 "022a519cd868f36966dbda5e128368f134ac94418b68d7ca6be0794c61997d3a"
 
   depends_on "libpng"
   depends_on "jpeg"
-  
+
   patch do
-    url "file://" + File.dirname(__FILE__) + "/patches/htmldoc-cavok-patch-1.8.27.patch"
-    sha256 "265354b0857d6c872119c57b6e6d0fe895f2a3058337b593f638f61b4ef412bf"
+    url "file://" + File.dirname(__FILE__) + "/patches/htmldoc-cavok-patch-1.8.28.patch"
+    sha256 "be6e8f0dd4f882d8960f27b533c62071b5c6384431cd70b404fc6ccbc994caf1"
   end
 
   def install
