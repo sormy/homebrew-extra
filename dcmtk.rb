@@ -2,9 +2,9 @@ require 'formula'
 
 class Dcmtk < Formula
   homepage 'http://dicom.offis.de/dcmtk.php.en'
-  url 'http://dicom.offis.de/download/dcmtk/snapshot/dcmtk-3.6.1_20140617.tar.gz'
-  sha1 'f9d4d4d41e2d4189be7ccda302820b79b2163de9'
-  version '3.6.1_20140617'
+  url 'http://dicom.offis.de/download/dcmtk/snapshot/dcmtk-3.6.1_20150217.tar.gz'
+  sha256 '3cf8f3e52ed8a5240a7facc3a118de411aa54bc9beccba0cf7a975735da35304'
+  version '3.6.1_20150217'
   
   head 'http://git.dcmtk.org/dcmtk.git'
 
