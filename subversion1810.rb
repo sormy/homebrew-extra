@@ -5,13 +5,6 @@ class Subversion1810 < Formula
   url "http://www.apache.org/dyn/closer.cgi?path=subversion/subversion-1.8.10.tar.bz2"
   mirror "http://archive.apache.org/dist/subversion/subversion-1.8.10.tar.bz2"
   sha1 "d6896d94bb53c1b4c6e9c5bb1a5c466477b19b2b"
-  revision 2
-
-  bottle do
-    sha1 "fea8a67fd177ba418c9185423d4ce8055d8f2ef5" => :yosemite
-    sha1 "ab3d546951f17ce2f2159a4e6bbf0c10b0c6a4c0" => :mavericks
-    sha1 "18a00000ae92b6b6bad79f3b84f0ffcba4e655f7" => :mountain_lion
-  end
 
   deprecated_option "java" => "with-java"
   deprecated_option "perl" => "with-perl"
@@ -23,13 +16,17 @@ class Subversion1810 < Formula
   option "with-ruby", "Build Ruby bindings"
   option "with-gpg-agent", "Build with support for GPG Agent"
 
+#  resource "serf" do
+#    url "https://serf.googlecode.com/svn/src_releases/serf-1.3.7.tar.bz2", :using => :curl
+#    sha1 "db9ae339dba10a2b47f9bdacf30a58fd8e36683a"
+#  end
   resource "serf" do
-    url "https://serf.googlecode.com/svn/src_releases/serf-1.3.7.tar.bz2", :using => :curl
-    sha1 "db9ae339dba10a2b47f9bdacf30a58fd8e36683a"
+    url "https://serf.googlecode.com/svn/src_releases/serf-1.3.8.tar.bz2", :using => :curl
+    sha256 "e0500be065dbbce490449837bb2ab624e46d64fc0b090474d9acaa87c82b2590"
   end
 
   depends_on "pkg-config" => :build
-  depends_on :apr => :build
+  depends_on "apr"
 
   # Always build against Homebrew versions instead of system versions for consistency.
   depends_on "sqlite"
